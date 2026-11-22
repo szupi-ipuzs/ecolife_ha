@@ -34,6 +34,8 @@ Unofficial Home Assistant integration for **EcoLife** air quality sensors (the o
   Its id is remembered as hidden, and HA skips it when polling and when restarting.
   To bring hidden devices back, open the hub and choose **Configure → Refresh device list**.
   This clears the hidden list and reloads the device list from the cloud.
+- Bundled images. `brand/icon.png` is the integration and hub icon, served locally by HA's brands API (tested on 2026.10; older versions show a placeholder).
+  `images/device.png` (transparent background) is the device picture, shown on each device's *Air quality* entity.
 - Diagnostics download, with credentials, location and IDs redacted.
 
 ## Installation

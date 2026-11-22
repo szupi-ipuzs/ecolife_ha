@@ -271,3 +271,34 @@ async def test_remove_device_hides_it_until_refresh(
     assert dev_reg.async_get_device_by_identifier((DOMAIN, "mp1"), entry.entry_id) is not None
     assert hass.states.get("sensor.living_room_pm2_5").state == "27.0"
     assert er.async_get(hass).async_get("sensor.living_room_pm2_5") is not None
+
+
+async def test_images(
+    hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, hass_client
+) -> None:
+    """Device picture is served and used; brand icon is served for the integration."""
+    from homeassistant.setup import async_setup_component
+
+    aioclient_mock.post(LOGIN_URL, json=LOGIN_OK)
+    aioclient_mock.post(SEARCH_URL, json=_search())
+    assert await async_setup_component(hass, "http", {})
+    assert await async_setup_component(hass, "brands", {})
+    entry = _entry()
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    state = hass.states.get("sensor.living_room_air_quality")
+    assert state.attributes["entity_picture"] == "/ecolife_static/device.png"
+    assert "entity_picture" not in hass.states.get("sensor.living_room_pm2_5").attributes
+
+    client = await hass_client()
+    resp = await client.get("/ecolife_static/device.png")
+    assert resp.status == 200
+    assert (await resp.read())[:8] == b"\x89PNG\r\n\x1a\n"
+
+    resp = await client.get("/api/brands/integration/ecolife/icon.png")
+    assert resp.status == 200
+    assert (await resp.read())[:8] == b"\x89PNG\r\n\x1a\n"
+    resp = await client.get("/api/brands/integration/ecolife/dark_logo@2x.png")  # falls back to icon
+    assert resp.status == 200

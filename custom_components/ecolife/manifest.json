@@ -3,6 +3,7 @@
   "name": "EcoLife",
   "codeowners": [],
   "config_flow": true,
+  "dependencies": ["http"],
   "documentation": "https://github.com/your-user/ha-ecolife",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
