@@ -1,0 +1,95 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "EcoLife account",
+        "description": "Sign in with the account you use in the EcoLife Healthy Breathing app. All sensors of this account will be added to Home Assistant.",
+        "data": {
+          "email": "Email",
+          "password": "Password",
+          "scan_interval": "Polling interval"
+        },
+        "data_description": {
+          "email": "Email address of your EcoLife account.",
+          "password": "Password of your EcoLife account.",
+          "scan_interval": "How often to fetch sensor readings from the EcoLife cloud (10–3600 seconds)."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate EcoLife",
+        "description": "The EcoLife cloud rejected the password for {email}. Enter the current password.",
+        "data": {
+          "password": "Password"
+        }
+      },
+      "reconfigure": {
+        "title": "Update EcoLife password",
+        "description": "Enter the new password for {email}.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the EcoLife cloud.",
+      "invalid_auth": "Invalid email or password.",
+      "unknown": "Unexpected error."
+    },
+    "abort": {
+      "already_configured": "This EcoLife account is already configured.",
+      "reauth_successful": "Re-authentication was successful.",
+      "reconfigure_successful": "Reconfiguration was successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "EcoLife options",
+        "menu_options": {
+          "settings": "Polling interval",
+          "refresh_devices": "Refresh device list"
+        }
+      },
+      "settings": {
+        "title": "Polling interval",
+        "data": {
+          "scan_interval": "Polling interval"
+        },
+        "data_description": {
+          "scan_interval": "How often to fetch sensor readings from the EcoLife cloud (10–3600 seconds)."
+        }
+      },
+      "refresh_devices": {
+        "title": "Refresh device list",
+        "description": "Devices you deleted from Home Assistant are only hidden here: they are never removed from your EcoLife account. Currently hidden: {count}.\n\nSubmit to show them again and re-read the device list from the EcoLife cloud."
+      }
+    },
+    "abort": {
+      "devices_refreshed": "Device list refreshed. {count} hidden device(s) will be added back."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "voc": {
+        "name": "VOC"
+      },
+      "contamination": {
+        "name": "Pollution level"
+      },
+      "air_quality_range": {
+        "name": "Air quality"
+      },
+      "last_update": {
+        "name": "Last update"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "EcoLife rejected the stored credentials."
+    },
+    "cannot_connect": {
+      "message": "Error communicating with the EcoLife cloud: {error}"
+    }
+  }
+}

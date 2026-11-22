@@ -1,0 +1,10 @@
+{
+  "entity": {
+    "sensor": {
+      "voc": { "default": "mdi:molecule" },
+      "contamination": { "default": "mdi:air-filter" },
+      "air_quality_range": { "default": "mdi:gauge" },
+      "last_update": { "default": "mdi:clock-outline" }
+    }
+  }
+}

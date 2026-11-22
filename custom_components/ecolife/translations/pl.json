@@ -1,0 +1,95 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Konto EcoLife",
+        "description": "Zaloguj się kontem używanym w aplikacji EcoLife Healthy Breathing. Wszystkie czujniki tego konta zostaną dodane do Home Assistant.",
+        "data": {
+          "email": "Email",
+          "password": "Hasło",
+          "scan_interval": "Częstotliwość odpytywania"
+        },
+        "data_description": {
+          "email": "Adres email konta EcoLife.",
+          "password": "Hasło do konta EcoLife.",
+          "scan_interval": "Jak często pobierać odczyty z chmury EcoLife (10–3600 sekund)."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Ponowne uwierzytelnienie EcoLife",
+        "description": "Chmura EcoLife odrzuciła hasło dla {email}. Podaj aktualne hasło.",
+        "data": {
+          "password": "Hasło"
+        }
+      },
+      "reconfigure": {
+        "title": "Zmiana hasła EcoLife",
+        "description": "Podaj nowe hasło dla {email}.",
+        "data": {
+          "password": "Hasło"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie można połączyć się z chmurą EcoLife.",
+      "invalid_auth": "Nieprawidłowy email lub hasło.",
+      "unknown": "Nieoczekiwany błąd."
+    },
+    "abort": {
+      "already_configured": "To konto EcoLife jest już skonfigurowane.",
+      "reauth_successful": "Ponowne uwierzytelnienie powiodło się.",
+      "reconfigure_successful": "Ponowna konfiguracja powiodła się."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje EcoLife",
+        "menu_options": {
+          "settings": "Częstotliwość odpytywania",
+          "refresh_devices": "Odśwież listę urządzeń"
+        }
+      },
+      "settings": {
+        "title": "Częstotliwość odpytywania",
+        "data": {
+          "scan_interval": "Częstotliwość odpytywania"
+        },
+        "data_description": {
+          "scan_interval": "Jak często pobierać odczyty z chmury EcoLife (10–3600 sekund)."
+        }
+      },
+      "refresh_devices": {
+        "title": "Odśwież listę urządzeń",
+        "description": "Urządzenia usunięte z Home Assistant są tu tylko ukrywane: nigdy nie są usuwane z konta EcoLife. Obecnie ukrytych: {count}.\n\nZatwierdź, aby przywrócić je i ponownie pobrać listę urządzeń z chmury EcoLife."
+      }
+    },
+    "abort": {
+      "devices_refreshed": "Lista urządzeń odświeżona. Przywróconych ukrytych urządzeń: {count}."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "voc": {
+        "name": "LZO (VOC)"
+      },
+      "contamination": {
+        "name": "Poziom zanieczyszczenia"
+      },
+      "air_quality_range": {
+        "name": "Jakość powietrza"
+      },
+      "last_update": {
+        "name": "Ostatnia aktualizacja"
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_auth": {
+      "message": "EcoLife odrzuciło zapisane dane logowania."
+    },
+    "cannot_connect": {
+      "message": "Błąd komunikacji z chmurą EcoLife: {error}"
+    }
+  }
+}
