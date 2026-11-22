@@ -28,7 +28,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import EcolifeConfigEntry
 from .api import Measurement, MeasurePoint
-from .const import DEVICE_PICTURE, DOMAIN, MANUFACTURER
+from .const import DOMAIN, MANUFACTURER
 from .coordinator import EcolifeCoordinator
 
 PARALLEL_UPDATES = 0
@@ -129,7 +129,6 @@ class EcolifePointDescription(SensorEntityDescription):
     """Describes a sensor built from measure point metadata."""
 
     value_fn: Callable[[MeasurePoint], str | datetime | None]
-    show_device_picture: bool = False
 
 
 POINT_DESCRIPTIONS: tuple[EcolifePointDescription, ...] = (
@@ -137,8 +136,6 @@ POINT_DESCRIPTIONS: tuple[EcolifePointDescription, ...] = (
         key="range",
         translation_key="air_quality_range",
         value_fn=lambda mp: mp.range,
-        # The device's "main" entity shows the EcoLife sensor picture.
-        show_device_picture=True,
     ),
     EcolifePointDescription(
         key="last_update",
@@ -253,17 +250,6 @@ class EcolifePointSensor(EcolifeEntity, SensorEntity):
     """Metadata of a measure point (air quality range, last update)."""
 
     entity_description: EcolifePointDescription
-
-    def __init__(
-        self,
-        coordinator: EcolifeCoordinator,
-        mp: MeasurePoint,
-        description: EcolifePointDescription,
-    ) -> None:
-        """Initialise the entity."""
-        super().__init__(coordinator, mp, description)
-        if description.show_device_picture:
-            self._attr_entity_picture = DEVICE_PICTURE
 
     @property
     def native_value(self) -> str | datetime | None:

@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD, Platform
 from homeassistant.core import HomeAssistant
@@ -12,9 +9,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import EcolifeApi
-from .const import CONF_HIDDEN_DEVICES, DOMAIN, STATIC_URL
-
-STATIC_REGISTERED_KEY = f"{DOMAIN}_static_registered"
+from .const import CONF_HIDDEN_DEVICES, DOMAIN
 from .coordinator import EcolifeCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
@@ -26,19 +21,8 @@ def _locale(hass: HomeAssistant) -> str:
     return (hass.config.language or "en").split("-")[0]
 
 
-async def _async_register_static_images(hass: HomeAssistant) -> None:
-    """Serve images/ (device picture) once per HA run."""
-    if hass.data.get(STATIC_REGISTERED_KEY) or hass.http is None:
-        return
-    hass.data[STATIC_REGISTERED_KEY] = True
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(STATIC_URL, str(Path(__file__).parent / "images"), True)]
-    )
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: EcolifeConfigEntry) -> bool:
     """Set up an EcoLife hub (one EcoLife account)."""
-    await _async_register_static_images(hass)
     api = EcolifeApi(
         async_get_clientsession(hass),
         entry.data[CONF_EMAIL],

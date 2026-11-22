@@ -1,5 +1,7 @@
 # EcoLife for Home Assistant
 
+<img src="docs/device.png" alt="EcoLife air quality sensor" width="160" align="right">
+
 Unofficial Home Assistant integration for **EcoLife** air quality sensors (the ones used with the
 *EcoLife Healthy Breathing* Android app). It reads sensor values from the EcoLife cloud.
 
@@ -34,8 +36,8 @@ Unofficial Home Assistant integration for **EcoLife** air quality sensors (the o
   Its id is remembered as hidden, and HA skips it when polling and when restarting.
   To bring hidden devices back, open the hub and choose **Configure → Refresh device list**.
   This clears the hidden list and reloads the device list from the cloud.
-- Bundled images. `brand/icon.png` is the integration and hub icon, served locally by HA's brands API (tested on 2026.10; older versions show a placeholder).
-  `images/device.png` (transparent background) is the device picture, shown on each device's *Air quality* entity.
+- Bundled icon. `brand/icon.png` is the integration, hub and device icon, served locally by HA's brands API
+  (tested on 2026.10; older versions show a placeholder).
 - Diagnostics download, with credentials, location and IDs redacted.
 
 ## Installation
