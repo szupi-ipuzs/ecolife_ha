@@ -12,18 +12,29 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClien
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from homeassistant.helpers import device_registry as dr
 
-from custom_components.ecolife.api import API_URL, PATH_LOGIN, PATH_USER_SEARCH
+from custom_components.ecolife.api import (
+    API_URL,
+    PATH_DEVICES_SETTING,
+    PATH_LOGIN,
+    PATH_SEND_BRIGHT_COMMAND,
+    PATH_USER_SEARCH,
+)
 from custom_components.ecolife.const import CONF_SCAN_INTERVAL, DOMAIN
 
 LOGIN_URL = API_URL + PATH_LOGIN
 SEARCH_URL = API_URL + PATH_USER_SEARCH
+SETTINGS_URL = API_URL + PATH_DEVICES_SETTING
+BRIGHT_URL = API_URL + PATH_SEND_BRIGHT_COMMAND
 TOKEN = "a" * 32
 
 LOGIN_OK = {"status": 0, "data": TOKEN, "settings": {"logLevel": "INFO"}}
 LOGIN_BAD = {"status": 1, "data": "emailPasswordError", "settings": None}
+# Only owned devices have settings (mp1); the observed one (mp2) does not.
+SETTINGS = {"status": 0, "deviceSetting": [{"uuid": "UUID-mp1", "name": "Living room", "bright": 50, "start": 0, "stop": 24}]}
 SEARCH_REJECTED = {"status": 1, "measurePoints": None, "observedMPs": None, "aggMeasures": None}
 
 
@@ -32,11 +43,12 @@ def _m(t: str, unit: str, value: str) -> dict[str, Any]:
 
 
 def _mp(mp_id: str, name: str, pm25: str = "27.00") -> dict[str, Any]:
+    uuid = f"UUID-{mp_id}"
     return {
         "id": mp_id,
         "userId": "u1",
         "name": name,
-        "uuids": ["8a23f35945084ebab2e0b39e50ad0b61"],
+        "uuids": [uuid],
         "location": {"latitude": 49.0, "longtitude": 20.4},
         "latest": {
             "PRESSURE": _m("PRESSURE", "Pa", "967.35"),
@@ -93,6 +105,7 @@ async def test_user_flow(hass: HomeAssistant, aioclient_mock: AiohttpClientMocke
     login = Responder(LOGIN_BAD, LOGIN_OK)
     aioclient_mock.post(LOGIN_URL, side_effect=login)
     aioclient_mock.post(SEARCH_URL, json=_search())
+    aioclient_mock.post(SETTINGS_URL, json=SETTINGS)
 
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": SOURCE_USER})
     assert result["type"] is FlowResultType.FORM
@@ -128,6 +141,7 @@ async def test_setup_creates_devices_and_sensors(
     search = Responder(_search())
     aioclient_mock.post(LOGIN_URL, json=LOGIN_OK)
     aioclient_mock.post(SEARCH_URL, side_effect=search)
+    aioclient_mock.post(SETTINGS_URL, json=SETTINGS)
     entry = _entry()
     entry.add_to_hass(hass)
 
@@ -158,6 +172,7 @@ async def test_poll_relogins_when_token_rejected(
     login = Responder(LOGIN_OK)
     aioclient_mock.post(LOGIN_URL, side_effect=login)
     aioclient_mock.post(SEARCH_URL, side_effect=Responder(_search(), SEARCH_REJECTED, _search("5")))
+    aioclient_mock.post(SETTINGS_URL, json=SETTINGS)
     entry = _entry()
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -198,6 +213,7 @@ async def test_options_flow(hass: HomeAssistant, aioclient_mock: AiohttpClientMo
     """The polling interval can be changed afterwards."""
     aioclient_mock.post(LOGIN_URL, json=LOGIN_OK)
     aioclient_mock.post(SEARCH_URL, json=_search())
+    aioclient_mock.post(SETTINGS_URL, json=SETTINGS)
     entry = _entry()
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -224,6 +240,7 @@ async def test_remove_device_hides_it_until_refresh(
 
     aioclient_mock.post(LOGIN_URL, json=LOGIN_OK)
     aioclient_mock.post(SEARCH_URL, json=_search())
+    aioclient_mock.post(SETTINGS_URL, json=SETTINGS)
     assert await async_setup_component(hass, "config", {})
     entry = _entry()
     entry.add_to_hass(hass)
@@ -253,8 +270,8 @@ async def test_remove_device_hides_it_until_refresh(
     assert dev_reg.async_get_device_by_identifier((DOMAIN, "mp1"), entry.entry_id) is None
     assert dev_reg.async_get_device_by_identifier((DOMAIN, "mp2"), entry.entry_id) is not None
 
-    # Nothing but login/userSearch was ever sent to the server.
-    assert {str(url) for _, url, _, _ in aioclient_mock.mock_calls} == {LOGIN_URL, SEARCH_URL}
+    # Only read-only calls were sent to the server (no removeDevice).
+    assert {str(url) for _, url, _, _ in aioclient_mock.mock_calls} == {LOGIN_URL, SEARCH_URL, SETTINGS_URL}
 
     # Hub options -> "Refresh device list".
     result = await hass.config_entries.options.async_init(entry.entry_id)
@@ -281,6 +298,7 @@ async def test_brand_icon(
 
     aioclient_mock.post(LOGIN_URL, json=LOGIN_OK)
     aioclient_mock.post(SEARCH_URL, json=_search())
+    aioclient_mock.post(SETTINGS_URL, json=SETTINGS)
     assert await async_setup_component(hass, "http", {})
     assert await async_setup_component(hass, "brands", {})
     entry = _entry()
@@ -297,3 +315,84 @@ async def test_brand_icon(
     assert (await resp.read())[:8] == b"\x89PNG\r\n\x1a\n"
     resp = await client.get("/api/brands/integration/ecolife/dark_logo@2x.png")  # falls back to icon
     assert resp.status == 200
+
+
+async def _setup_with_led(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker, bright=None):
+    aioclient_mock.post(LOGIN_URL, json=LOGIN_OK)
+    aioclient_mock.post(SEARCH_URL, json=_search())
+    aioclient_mock.post(SETTINGS_URL, json=SETTINGS)
+    if bright is not None:
+        aioclient_mock.post(BRIGHT_URL, side_effect=bright)
+    await hass.config.async_update(time_zone="Europe/Warsaw")
+    entry = _entry()
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+async def _set(hass: HomeAssistant, entity_id: str, value: float) -> None:
+    await hass.services.async_call(
+        "number", "set_value", {"entity_id": entity_id, "value": value}, blocking=True
+    )
+
+
+async def test_led_controls(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """Brightness sliders mirror the app and send sendBrightCommand like it does."""
+    bright = Responder({"status": 0, "data": "OK"})
+    await _setup_with_led(hass, aioclient_mock, bright)
+
+    assert hass.states.get("number.living_room_led_brightness").state == "50"
+    assert hass.states.get("number.living_room_led_schedule_start").state == "0"
+    assert hass.states.get("number.living_room_led_schedule_end").state == "24"
+    attrs = hass.states.get("number.living_room_led_brightness").attributes
+    assert (attrs["min"], attrs["max"], attrs["step"]) == (0, 100, 10)
+    # Observed devices can't be controlled.
+    assert hass.states.get("number.neighbour_led_brightness") is None
+
+    await _set(hass, "number.living_room_led_brightness", 70)
+    assert bright.bodies[-1] == {
+        "uuid": "UUID-mp1", "data": 70, "start": 0, "stop": 24, "timezone": "Europe/Warsaw", "token": TOKEN,
+    }
+    assert hass.states.get("number.living_room_led_brightness").state == "70"
+
+    await _set(hass, "number.living_room_led_schedule_end", 22)
+    await _set(hass, "number.living_room_led_schedule_start", 7)
+    assert bright.bodies[-1] == {
+        "uuid": "UUID-mp1", "data": 70, "start": 7, "stop": 22, "timezone": "Europe/Warsaw", "token": TOKEN,
+    }
+    assert hass.states.get("number.living_room_led_schedule_start").state == "7"
+
+    # Like the app's range slider, start may not be after end; nothing is sent.
+    sent = len(bright.bodies)
+    with pytest.raises(ServiceValidationError):
+        await _set(hass, "number.living_room_led_schedule_start", 23)
+    assert len(bright.bodies) == sent
+    assert hass.states.get("number.living_room_led_schedule_start").state == "7"
+
+
+async def test_led_command_rejected(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """A rejected command raises a readable error and keeps the old value."""
+    bright = Responder({"status": -1, "data": None})
+    await _setup_with_led(hass, aioclient_mock, bright)
+    with pytest.raises(HomeAssistantError):
+        await _set(hass, "number.living_room_led_brightness", 30)
+    assert len(bright.bodies) == 2  # retried once after re-login
+    assert hass.states.get("number.living_room_led_brightness").state == "50"
+
+
+async def test_settings_failure_keeps_sensors(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    """If the settings endpoint fails, sensors still work and LED controls go unavailable."""
+    aioclient_mock.post(LOGIN_URL, json=LOGIN_OK)
+    aioclient_mock.post(SEARCH_URL, json=_search())
+    aioclient_mock.post(SETTINGS_URL, side_effect=Responder(SETTINGS, {"status": 3}))
+    entry = _entry()
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert hass.states.get("number.living_room_led_brightness").state == "50"
+
+    await entry.runtime_data.async_refresh()
+    await hass.async_block_till_done()
+    assert hass.states.get("number.living_room_led_brightness").state == "unavailable"
+    assert hass.states.get("sensor.living_room_pm2_5").state == "27.0"

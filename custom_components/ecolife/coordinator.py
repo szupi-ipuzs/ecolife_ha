@@ -6,10 +6,14 @@ from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    HomeAssistantError,
+    ServiceValidationError,
+)
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import EcolifeApi, EcolifeAuthError, EcolifeError, MeasurePoint
+from .api import DeviceSetting, EcolifeApi, EcolifeAuthError, EcolifeError, MeasurePoint
 from .const import (
     CONF_HIDDEN_DEVICES,
     CONF_SCAN_INTERVAL,
@@ -75,4 +79,71 @@ class EcolifeCoordinator(DataUpdateCoordinator[dict[str, MeasurePoint]]):
                 translation_placeholders={"error": str(err)},
             ) from err
         hidden = set(self.config_entry.data.get(CONF_HIDDEN_DEVICES, []))
-        return {mp_id: mp for mp_id, mp in points.items() if mp_id not in hidden}
+        points = {mp_id: mp for mp_id, mp in points.items() if mp_id not in hidden}
+        await self._async_attach_settings(points)
+        return points
+
+    async def _async_attach_settings(self, points: dict[str, MeasurePoint]) -> None:
+        """Join LED settings (keyed by hardware uuid) onto measure points.
+
+        A failure here only makes the brightness controls unavailable; the
+        sensor readings are still delivered.
+        """
+        try:
+            settings = await self.api.async_get_device_settings()
+        except EcolifeAuthError as err:
+            raise ConfigEntryAuthFailed(
+                translation_domain=DOMAIN, translation_key="invalid_auth"
+            ) from err
+        except EcolifeError as err:
+            LOGGER.warning("Could not read EcoLife device settings: %s", err)
+            return
+        for mp in points.values():
+            mp.setting = next((settings[u] for u in mp.uuids if u in settings), None)
+
+    async def async_set_led(
+        self,
+        mp_id: str,
+        *,
+        bright: int | None = None,
+        start: int | None = None,
+        stop: int | None = None,
+    ) -> None:
+        """Send a brightness command; unchanged fields keep their current value."""
+        mp = (self.data or {}).get(mp_id)
+        if mp is None or mp.setting is None:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="no_led_settings"
+            )
+        current = mp.setting
+        new = DeviceSetting(
+            uuid=current.uuid,
+            name=current.name,
+            bright=current.bright if bright is None else bright,
+            start=current.start if start is None else start,
+            stop=current.stop if stop is None else stop,
+        )
+        # The app's two-handle time slider can't produce start > stop.
+        if new.start > new.stop:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="invalid_led_hours",
+                translation_placeholders={"start": str(new.start), "stop": str(new.stop)},
+            )
+        try:
+            await self.api.async_send_bright_command(
+                new.uuid, new.bright, new.start, new.stop, str(self.hass.config.time_zone)
+            )
+        except EcolifeAuthError as err:
+            self.config_entry.async_start_reauth(self.hass)
+            raise HomeAssistantError(
+                translation_domain=DOMAIN, translation_key="invalid_auth"
+            ) from err
+        except EcolifeError as err:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="command_failed",
+                translation_placeholders={"error": str(err)},
+            ) from err
+        mp.setting = new
+        self.async_update_listeners()

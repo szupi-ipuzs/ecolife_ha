@@ -29,6 +29,20 @@ Unofficial Home Assistant integration for **EcoLife** air quality sensors (the o
 
   Each measurement sensor also has `norm` and `percent_of_norm` attributes, the same values the app shows.
   If a measure type isn't in this table, it gets a generic sensor.
+- **LED brightness control**, the same as the app's device settings screen, for your own devices
+  (not observed ones). There are three slider entities per device:
+
+  | Entity | Range | App equivalent |
+  |---|---|---|
+  | LED brightness | 0–100 %, steps of 10 | brightness slider |
+  | LED schedule start | 0–24 h | left handle of the time slider |
+  | LED schedule end | 0–24 h | right handle of the time slider |
+
+  A change sends `DeviceController/sendBrightCommand` with all three values and HA's timezone, as the app does.
+  As in the app, the start can't be later than the end.
+  Current values are read from `MeasurePoint/userDevicesSetting` on every poll.
+  The decompiled app doesn't show exactly how the device uses the hour range.
+  0–24 (the default) means the brightness applies all day.
 - If the password changes, HA asks you to re-authenticate. You can change the polling interval
   under **Configure → Polling interval** and the password under **Reconfigure**.
 - **Deleting a device in Home Assistant only hides it.** The integration never calls the EcoLife

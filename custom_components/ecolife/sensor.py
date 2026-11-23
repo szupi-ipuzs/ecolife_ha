@@ -22,14 +22,11 @@ from homeassistant.const import (
     UnitOfTemperature,
 )
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import EcolifeConfigEntry
 from .api import Measurement, MeasurePoint
-from .const import DOMAIN, MANUFACTURER
-from .coordinator import EcolifeCoordinator
+from .entity import EcolifeEntity
 
 PARALLEL_UPDATES = 0
 
@@ -179,41 +176,6 @@ async def async_setup_entry(
 
     _add_new_entities()
     entry.async_on_unload(coordinator.async_add_listener(_add_new_entities))
-
-
-class EcolifeEntity(CoordinatorEntity[EcolifeCoordinator]):
-    """Base entity bound to one measure point."""
-
-    _attr_has_entity_name = True
-
-    def __init__(
-        self,
-        coordinator: EcolifeCoordinator,
-        mp: MeasurePoint,
-        description: SensorEntityDescription,
-    ) -> None:
-        """Initialise the entity."""
-        super().__init__(coordinator)
-        self.entity_description = description
-        self._mp_id = mp.id
-        self._attr_unique_id = f"{mp.id}_{description.key.lower()}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, mp.id)},
-            name=mp.name,
-            manufacturer=MANUFACTURER,
-            model="Observed measure point" if mp.observed else "Air quality sensor",
-            serial_number=mp.uuids[0] if mp.uuids else None,
-        )
-
-    @property
-    def measure_point(self) -> MeasurePoint | None:
-        """Return the latest data for this measure point."""
-        return (self.coordinator.data or {}).get(self._mp_id)
-
-    @property
-    def available(self) -> bool:
-        """Entity is available while the account still reports the point."""
-        return super().available and self.measure_point is not None
 
 
 class EcolifeMeasurementSensor(EcolifeEntity, SensorEntity):

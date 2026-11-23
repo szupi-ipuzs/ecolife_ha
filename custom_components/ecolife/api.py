@@ -22,6 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 API_URL = "https://rest.ecolife.eu.com:58200/EcoLife/"
 PATH_LOGIN = "User/login"
 PATH_USER_SEARCH = "MeasurePoint/userSearch"
+PATH_DEVICES_SETTING = "MeasurePoint/userDevicesSetting"
+PATH_SEND_BRIGHT_COMMAND = "DeviceController/sendBrightCommand"
 
 HEADERS = {
     "Accept": "application/json, text/plain, */*",
@@ -71,6 +73,23 @@ class MeasurePoint:
     last_update: datetime | None
     measurements: dict[str, Measurement] = field(default_factory=dict)
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
+    # LED settings from MeasurePoint/userDevicesSetting (owned devices only).
+    setting: DeviceSetting | None = None
+
+
+@dataclass(slots=True)
+class DeviceSetting:
+    """LED brightness settings of one device, as in the app's settings screen.
+
+    ``bright`` is 0-100 % (the app's slider moves in steps of 10); ``start`` and
+    ``stop`` are full hours 0-24 of the app's time-range slider.
+    """
+
+    uuid: str
+    name: str | None
+    bright: int
+    start: int
+    stop: int
 
 
 def _to_float(value: Any) -> float | None:
@@ -206,8 +225,56 @@ class EcolifeApi:
         self._token = token
         return token
 
-    async def _user_search(self) -> dict[str, Any]:
-        return await self._post(PATH_USER_SEARCH, {})
+    async def _authed_post(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
+        """POST with the session token; if rejected, log in again once and retry."""
+        if self._token is None:
+            await self.async_login()
+        data = await self._post(path, params)
+        if data.get("status") != STATUS_OK:
+            _LOGGER.debug("%s returned status %s, re-login", path, data.get("status"))
+            await self.async_login()
+            data = await self._post(path, params)
+            if data.get("status") != STATUS_OK:
+                raise EcolifeError(f"{path} failed with status {data.get('status')}")
+        return data
+
+    async def async_get_device_settings(self) -> dict[str, DeviceSetting]:
+        """Return LED settings keyed by device uuid (``userDevicesSetting``)."""
+        data = await self._authed_post(PATH_DEVICES_SETTING, {})
+        result: dict[str, DeviceSetting] = {}
+        for item in data.get("deviceSetting") or []:
+            try:
+                setting = DeviceSetting(
+                    uuid=str(item["uuid"]),
+                    name=item.get("name"),
+                    bright=int(item.get("bright") or 0),
+                    start=int(item.get("start") or 0),
+                    stop=int(item["stop"]) if item.get("stop") is not None else 24,
+                )
+            except (KeyError, TypeError, ValueError):
+                _LOGGER.debug("Skipping malformed device setting: %s", item)
+                continue
+            result[setting.uuid] = setting
+        return result
+
+    async def async_send_bright_command(
+        self, uuid: str, bright: int, start: int, stop: int, timezone: str
+    ) -> None:
+        """Set LED brightness and its hour range, exactly like the app does.
+
+        The server answers ``{"status": 0, "data": "OK"}``; an unknown uuid
+        gives ``status -1``.
+        """
+        await self._authed_post(
+            PATH_SEND_BRIGHT_COMMAND,
+            {
+                "uuid": uuid,
+                "data": bright,
+                "start": start,
+                "stop": stop,
+                "timezone": timezone,
+            },
+        )
 
     async def async_get_measure_points(self) -> dict[str, MeasurePoint]:
         """Return the user's own and observed measure points (``userSearch``).
@@ -215,15 +282,7 @@ class EcolifeApi:
         Like the app, observed measure points are listed alongside the owned
         ones. If the token is no longer accepted, log in again once.
         """
-        if self._token is None:
-            await self.async_login()
-        data = await self._user_search()
-        if data.get("status") != STATUS_OK:
-            _LOGGER.debug("userSearch rejected token (status %s), re-login", data.get("status"))
-            await self.async_login()
-            data = await self._user_search()
-            if data.get("status") != STATUS_OK:
-                raise EcolifeError(f"userSearch failed with status {data.get('status')}")
+        data = await self._authed_post(PATH_USER_SEARCH, {})
 
         result: dict[str, MeasurePoint] = {}
         for raw in data.get("observedMPs") or []:

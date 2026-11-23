@@ -69,6 +69,17 @@
     }
   },
   "entity": {
+    "number": {
+      "led_brightness": {
+        "name": "Jasność LED"
+      },
+      "led_start": {
+        "name": "Harmonogram LED – początek"
+      },
+      "led_stop": {
+        "name": "Harmonogram LED – koniec"
+      }
+    },
     "sensor": {
       "voc": {
         "name": "LZO (VOC)"
@@ -90,6 +101,15 @@
     },
     "cannot_connect": {
       "message": "Błąd komunikacji z chmurą EcoLife: {error}"
+    },
+    "no_led_settings": {
+      "message": "To urządzenie EcoLife nie ma ustawień LED (sterować można tylko własnymi urządzeniami)."
+    },
+    "invalid_led_hours": {
+      "message": "Początek harmonogramu LED ({start}:00) nie może być późniejszy niż jego koniec ({stop}:00)."
+    },
+    "command_failed": {
+      "message": "EcoLife nie przyjęło polecenia LED: {error}"
     }
   }
 }

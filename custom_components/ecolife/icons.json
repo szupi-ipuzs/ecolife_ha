@@ -1,10 +1,29 @@
 {
   "entity": {
+    "number": {
+      "led_brightness": {
+        "default": "mdi:brightness-6"
+      },
+      "led_start": {
+        "default": "mdi:clock-start"
+      },
+      "led_stop": {
+        "default": "mdi:clock-end"
+      }
+    },
     "sensor": {
-      "voc": { "default": "mdi:molecule" },
-      "contamination": { "default": "mdi:air-filter" },
-      "air_quality_range": { "default": "mdi:gauge" },
-      "last_update": { "default": "mdi:clock-outline" }
+      "voc": {
+        "default": "mdi:molecule"
+      },
+      "contamination": {
+        "default": "mdi:air-filter"
+      },
+      "air_quality_range": {
+        "default": "mdi:gauge"
+      },
+      "last_update": {
+        "default": "mdi:clock-outline"
+      }
     }
   }
 }

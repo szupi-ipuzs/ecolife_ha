@@ -12,7 +12,7 @@ from .api import EcolifeApi
 from .const import CONF_HIDDEN_DEVICES, DOMAIN
 from .coordinator import EcolifeCoordinator
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.NUMBER, Platform.SENSOR]
 
 type EcolifeConfigEntry = ConfigEntry[EcolifeCoordinator]
 

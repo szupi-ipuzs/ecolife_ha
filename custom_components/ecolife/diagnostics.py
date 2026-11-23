@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -10,7 +11,17 @@ from homeassistant.core import HomeAssistant
 
 from . import EcolifeConfigEntry
 
-TO_REDACT = {CONF_EMAIL, CONF_PASSWORD, "token", "userId", "location", "uuids", "title", "unique_id"}
+TO_REDACT = {
+    CONF_EMAIL,
+    CONF_PASSWORD,
+    "token",
+    "userId",
+    "location",
+    "uuids",
+    "uuid",
+    "title",
+    "unique_id",
+}
 
 
 async def async_get_config_entry_diagnostics(
@@ -21,7 +32,14 @@ async def async_get_config_entry_diagnostics(
     return {
         "entry": async_redact_data(entry.as_dict(), TO_REDACT),
         "measure_points": [
-            async_redact_data({**mp.raw, "observed": mp.observed}, TO_REDACT)
+            async_redact_data(
+                {
+                    **mp.raw,
+                    "observed": mp.observed,
+                    "setting": asdict(mp.setting) if mp.setting else None,
+                },
+                TO_REDACT,
+            )
             for mp in (coordinator.data or {}).values()
         ],
     }
