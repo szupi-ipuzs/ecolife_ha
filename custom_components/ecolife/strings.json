@@ -105,9 +105,6 @@
     "no_led_settings": {
       "message": "This EcoLife device has no LED settings (only your own devices can be controlled)."
     },
-    "invalid_led_hours": {
-      "message": "The LED schedule start ({start}:00) must not be later than its end ({stop}:00)."
-    },
     "command_failed": {
       "message": "EcoLife did not accept the LED command: {error}"
     }

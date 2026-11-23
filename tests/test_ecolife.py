@@ -12,7 +12,7 @@ from pytest_homeassistant_custom_component.test_util.aiohttp import AiohttpClien
 from homeassistant.config_entries import SOURCE_USER, ConfigEntryState
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from homeassistant.helpers import device_registry as dr
 
@@ -363,12 +363,14 @@ async def test_led_controls(hass: HomeAssistant, aioclient_mock: AiohttpClientMo
     }
     assert hass.states.get("number.living_room_led_schedule_start").state == "7"
 
-    # Like the app's range slider, start may not be after end; nothing is sent.
-    sent = len(bright.bodies)
-    with pytest.raises(ServiceValidationError):
-        await _set(hass, "number.living_room_led_schedule_start", 23)
-    assert len(bright.bodies) == sent
-    assert hass.states.get("number.living_room_led_schedule_start").state == "7"
+    # Overnight range (start after end) is allowed and sent as-is.
+    await _set(hass, "number.living_room_led_schedule_start", 23)
+    await _set(hass, "number.living_room_led_schedule_end", 6)
+    assert bright.bodies[-1] == {
+        "uuid": "UUID-mp1", "data": 70, "start": 23, "stop": 6, "timezone": "Europe/Warsaw", "token": TOKEN,
+    }
+    assert hass.states.get("number.living_room_led_schedule_start").state == "23"
+    assert hass.states.get("number.living_room_led_schedule_end").state == "6"
 
 
 async def test_led_command_rejected(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:

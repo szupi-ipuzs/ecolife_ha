@@ -6,11 +6,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import (
-    ConfigEntryAuthFailed,
-    HomeAssistantError,
-    ServiceValidationError,
-)
+from homeassistant.exceptions import ConfigEntryAuthFailed, HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import DeviceSetting, EcolifeApi, EcolifeAuthError, EcolifeError, MeasurePoint
@@ -123,13 +119,8 @@ class EcolifeCoordinator(DataUpdateCoordinator[dict[str, MeasurePoint]]):
             start=current.start if start is None else start,
             stop=current.stop if stop is None else stop,
         )
-        # The app's two-handle time slider can't produce start > stop.
-        if new.start > new.stop:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="invalid_led_hours",
-                translation_placeholders={"start": str(new.start), "stop": str(new.stop)},
-            )
+        # start > stop is allowed: the LED is lit from start, across midnight,
+        # until stop (e.g. 22 -> 6 for nights). The cloud accepts and stores it.
         try:
             await self.api.async_send_bright_command(
                 new.uuid, new.bright, new.start, new.stop, str(self.hass.config.time_zone)

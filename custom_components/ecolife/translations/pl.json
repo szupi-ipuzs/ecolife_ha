@@ -105,9 +105,6 @@
     "no_led_settings": {
       "message": "To urządzenie EcoLife nie ma ustawień LED (sterować można tylko własnymi urządzeniami)."
     },
-    "invalid_led_hours": {
-      "message": "Początek harmonogramu LED ({start}:00) nie może być późniejszy niż jego koniec ({stop}:00)."
-    },
     "command_failed": {
       "message": "EcoLife nie przyjęło polecenia LED: {error}"
     }

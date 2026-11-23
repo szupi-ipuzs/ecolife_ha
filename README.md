@@ -39,10 +39,11 @@ Unofficial Home Assistant integration for **EcoLife** air quality sensors (the o
   | LED schedule end | 0–24 h | right handle of the time slider |
 
   A change sends `DeviceController/sendBrightCommand` with all three values and HA's timezone, as the app does.
-  As in the app, the start can't be later than the end.
   Current values are read from `MeasurePoint/userDevicesSetting` on every poll.
-  The decompiled app doesn't show exactly how the device uses the hour range.
-  0–24 (the default) means the brightness applies all day.
+  The LED is lit only between the start and end hours and is **off outside them**.
+  0–24 (the default) means it's on all day.
+  The end may be earlier than the start, for a range that crosses midnight
+  (e.g. start 22, end 6 to keep it on only at night). The app's slider can't do this, but the cloud accepts it.
 - If the password changes, HA asks you to re-authenticate. You can change the polling interval
   under **Configure → Polling interval** and the password under **Reconfigure**.
 - **Deleting a device in Home Assistant only hides it.** The integration never calls the EcoLife
