@@ -58,7 +58,7 @@ Unofficial Home Assistant integration for **EcoLife** air quality sensors (the o
 ## Installation
 
 ### HACS (custom repository)
-1. HACS → ⋮ → *Custom repositories* → add this repository's URL, category **Integration**.
+1. HACS → ⋮ → *Custom repositories* → add `https://github.com/szupi-ipuzs/ecolife_ha`, category **Integration**.
 2. Install **EcoLife** and restart Home Assistant.
 
 ### Manual
@@ -80,3 +80,14 @@ Requires Home Assistant 2025.8 or newer.
 pip install pytest-homeassistant-custom-component
 pytest
 ```
+
+## Disclaimer
+
+This is an independent, unofficial project. The author is not affiliated with,
+endorsed by, or sponsored by Eco Life Sp. z o.o. "EcoLife" and related names
+and logos are trademarks of their respective owners and are used here only to
+identify the devices this integration works with. Use at your own risk.
+
+## License
+
+[MIT](LICENSE)

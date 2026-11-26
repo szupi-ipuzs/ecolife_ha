@@ -1,12 +1,12 @@
 {
   "domain": "ecolife",
   "name": "EcoLife",
-  "codeowners": [],
+  "codeowners": ["@szupi-ipuzs"],
   "config_flow": true,
-  "documentation": "https://github.com/your-user/ha-ecolife",
+  "documentation": "https://github.com/szupi-ipuzs/ecolife_ha",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/your-user/ha-ecolife/issues",
+  "issue_tracker": "https://github.com/szupi-ipuzs/ecolife_ha/issues",
   "requirements": [],
   "version": "0.1.0"
 }

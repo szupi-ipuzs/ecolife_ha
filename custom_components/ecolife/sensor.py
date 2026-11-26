@@ -14,13 +14,19 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
     LIGHT_LUX,
     PERCENTAGE,
     EntityCategory,
     UnitOfPressure,
     UnitOfTemperature,
 )
+
+try:
+    from homeassistant.const import UnitOfDensity
+
+    UG_PER_M3 = UnitOfDensity.MICROGRAMS_PER_CUBIC_METER
+except ImportError:  # Home Assistant versions before UnitOfDensity
+    from homeassistant.const import CONCENTRATION_MICROGRAMS_PER_CUBIC_METER as UG_PER_M3
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -50,14 +56,14 @@ MEASUREMENT_DESCRIPTIONS: dict[str, EcolifeMeasurementDescription] = {
     "PM25": EcolifeMeasurementDescription(
         key="PM25",
         device_class=SensorDeviceClass.PM25,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UG_PER_M3,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=0,
     ),
     "PM10": EcolifeMeasurementDescription(
         key="PM10",
         device_class=SensorDeviceClass.PM10,
-        native_unit_of_measurement=CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        native_unit_of_measurement=UG_PER_M3,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=0,
     ),
@@ -106,7 +112,7 @@ MEASUREMENT_DESCRIPTIONS: dict[str, EcolifeMeasurementDescription] = {
     ),
 }
 
-_UNIT_MAP = {"ugm3": CONCENTRATION_MICROGRAMS_PER_CUBIC_METER, "pc": PERCENTAGE, "C": "°C", "lux": LIGHT_LUX}
+_UNIT_MAP = {"ugm3": UG_PER_M3, "pc": PERCENTAGE, "C": "°C", "lux": LIGHT_LUX}
 
 
 def _description_for(measure_type: str, unit: str | None) -> EcolifeMeasurementDescription:
