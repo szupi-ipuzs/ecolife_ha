@@ -1,6 +1,7 @@
 {
   "domain": "ecolife",
   "name": "EcoLife",
+  "categories": ["sensors.air_quality"],
   "codeowners": ["@szupi-ipuzs"],
   "config_flow": true,
   "documentation": "https://github.com/szupi-ipuzs/ecolife_ha",
